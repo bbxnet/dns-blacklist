@@ -1,0 +1,11 @@
+; BIND blacklist zone file
+$TTL	86400
+@	IN	SOA	${PRIMARY_DNS}. ${HOSTMASTER}. (
+			      1		; Serial
+			 604800		; Refresh
+			  86400		; Retry
+			2419200		; Expire
+			  86400 )	; Negative Cache TTL
+;
+@	IN	NS	${PRIMARY_DNS}.
+@	IN	NS	${SECONDARY_DNS}.
