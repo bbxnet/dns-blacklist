@@ -2,6 +2,7 @@
 
 set -o errexit
 set -o nounset
+set -o pipefail
 
 readonly CGREEN='\033[0;32m'
 readonly CRED='\033[0;31m'
@@ -20,7 +21,7 @@ function test_site() {
 
     echo -n "Testing site '${site}' "
 
-    if ping -q -c 1 "${site}" 1>/dev/null 2>/dev/null; then
+    if ping -q -c 2 "${site}" 1>/dev/null 2>/dev/null; then
         echo -e "[${CRED}FAIL${CRESET}]"
         return 1
     fi
@@ -33,7 +34,7 @@ function test_blacklist() {
     local blacklist="$1"; shift
 
     if [ ! -f "${blacklist}" ]; then
-        echo "Blacklist '${blacklist}' not found!"
+        >&2 echo "Blacklist '${blacklist}' not found!"
         return 1
     fi
 

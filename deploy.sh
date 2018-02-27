@@ -2,15 +2,12 @@
 
 set -o errexit
 set -o nounset
+set -o pipefail
 
 readonly OWNER="root"
 readonly GROUP="bind"
 readonly MODE="0644"
 readonly NAMEDCONF="named.conf"
-
-readonly CGREEN='\033[0;32m'
-readonly CRED='\033[0;31m'
-readonly CRESET='\033[0m'
 
 function usage() {
     cat >&2 <<EOHELP
@@ -32,12 +29,12 @@ function deploy_namedconf() {
     local dest="${confdir}/$( basename "${namedconf}" )"
 
     if [ ! -f "${namedconf}" ]; then
-        echo "Source named conf file '${namedconf}' does not exists!"
+        >&2 echo "Source named conf file '${namedconf}' does not exists!"
         return 1
     fi
 
     if [ -f "${dest}" ]; then
-        echo "Destination named conf file '${dest}' already exists!"
+        >&2 echo "Destination named conf file '${dest}' already exists!"
         return 1
     fi
 
@@ -51,12 +48,12 @@ function deploy_zonefile() {
     local dest="${confdir}/$( basename "${zonefile}" )"
 
     if [ ! -f "${zonefile}" ]; then
-        echo "Source named zone file '${zonefile}' does not exists!"
+        >&2 echo "Source named zone file '${zonefile}' does not exists!"
         return 1
     fi
 
     if [ -f "${dest}" ]; then
-        echo "Destination named zone file '${dest}' already exists!"
+        >&2 echo "Destination named zone file '${dest}' already exists!"
         return 1
     fi
 
@@ -69,8 +66,8 @@ function check_named_include() {
     local namedconf="$1"; shift
 
     if ! grep -q "include \".*$( basename "${namedconf}" )\";" "${confdir}/${NAMEDCONF}"; then
-        echo "Named blacklist conf file is not included in named.conf!"
-        echo "include \"${confdir}/$( basename "${namedconf}" )\";"
+        >&2 echo "Named blacklist conf file is not included in named.conf!"
+        >&2 echo "include \"${confdir}/$( basename "${namedconf}" )\";"
         return 1
     fi
 }

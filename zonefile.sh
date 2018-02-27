@@ -2,6 +2,7 @@
 
 set -o errexit
 set -o nounset
+set -o pipefail
 
 readonly TEMPLATE="db.blacklist.template"
 
@@ -24,12 +25,12 @@ function generate_zonefile() {
     local hostmaster="$1"; shift
 
     if [ ! -f "${TEMPLATE}" ]; then
-        echo "Zone file template '${TEMPLATE}' not found!"
+        >&2 echo "Zone file template '${TEMPLATE}' not found!"
         return 1
     fi
 
     if [ -f "${zonefile}" ]; then
-        echo "Named zone file '${zonefile}' already exists!"
+        >&2 echo "Named zone file '${zonefile}' already exists!"
         return 1
     fi
 

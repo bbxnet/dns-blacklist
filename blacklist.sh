@@ -2,9 +2,9 @@
 
 set -o errexit
 set -o nounset
+set -o pipefail
 
 readonly ZONEFILE="/etc/bind/db.blacklist"
-readonly REMOVE_WWW=1
 
 readonly CGREEN='\033[0;32m'
 readonly CRED='\033[0;31m'
@@ -21,7 +21,7 @@ EOHELP
 function generate_zone() {
     local site="$1"; shift
 
-    if [ ${REMOVE_WWW} -eq 1 ]; then
+    if [ ${BLACKLIST_STRIP_WWW:-0} -eq 1 ]; then
         site="${site#www.}"
     fi
 
@@ -33,12 +33,12 @@ function generate_blacklist() {
     local namedconf="$1"; shift
 
     if [ ! -f "${blacklist}" ]; then
-        echo "Blacklist '${blacklist}' not found!"
+        >&2 echo "Blacklist '${blacklist}' not found!"
         return 1
     fi
 
     if [ -f "${namedconf}" ]; then
-        echo "Named conf file '${namedconf}' already exists!"
+        >&2 echo "Named conf file '${namedconf}' already exists!"
         return 1
     fi
 
