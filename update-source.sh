@@ -4,13 +4,18 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-readonly SOURCE="https://www.financnasprava.sk/sk/infoservis/priklady-hazardne-hry"
+readonly CBLUE='\033[0;34m'
+readonly CGREEN='\033[0;32m'
+readonly CRED='\033[0;31m'
+readonly CRESET='\033[0m'
+
+readonly SOURCE="https://www.financnasprava.sk/sk/elektronicke-sluzby/verejne-sluzby/zoznamy/prikazy-sudu-k-zakazanym-ponuk"
 readonly WORKDIR="$( mktemp -d -t dnsbl.XXXXXXXX )"
 
 function usage() {
     cat >&2 <<EOHELP
 Usage:  $0 BLACKLIST
-Update blacklist file from remote source.
+Update blacklist file from remote source. 
 ${SOURCE}
 EOHELP
     exit 1
@@ -23,7 +28,7 @@ function cleanup() {
 }
 trap cleanup EXIT
 
-function download_source() {
+function get_source_list() {
     local src="$1"; shift
 
     if ! wget -q "${src}" -O "${WORKDIR}/source.html"; then
@@ -31,25 +36,37 @@ function download_source() {
         return 1
     fi
 
-    local realsrc; realsrc="https://www.financnasprava.sk/$( grep 'Zoznam zak' "${WORKDIR}/source.html" | sed -n 's/.*href="\([^"]*\).*/\1/p' )"
+    grep 'Príkaz súdu 6Ntn' "${WORKDIR}/source.html" \
+        | sed -n 's/.*href="\([^"]*\).*/\1/p'
+}
 
-    if ! wget -q "${realsrc}" -O "${WORKDIR}/source.pdf"; then
+function download_source() {
+    local src="$1"; shift
+    local dest="$( mktemp -p "${WORKDIR}" source.XXXXXXXX )"
+    
+    if ! wget -q "${src}" -O "${dest}"; then
         >&2 echo 'Source pdf download failed!'
         return 1
     fi
 
-    echo "${WORKDIR}/source.pdf"
+    echo "${dest}"
 }
 
-function extract_list() {
+function extract_website() {
     local src="$1"; shift
 
-    if ! pdftotext -bbox "${src}" "${WORKDIR}/transformed.html"; then
+    if ! pdftotext -f 1 -l 1 "${src}" "${WORKDIR}/transformed"; then
         >&2 echo 'Source pdf to text transformation failed!'
         return 1
     fi
+    
+    if ! grep -q 'Vydanie príkazu na zamedzenie prístupu k webovému sídlu' "${WORKDIR}/transformed"; then
+        return 64
+    fi
 
-    grep 'xMin=\"226.1' "${WORKDIR}/transformed.html" | sed -n -r 's!.+>(https?://)?(.+)<.+!\2!p'
+    cat "${WORKDIR}/transformed" \
+        | tr '\n' ' ' \
+        | sed -n -r 's!.*pod doménou (.+) z územia ([Ss]lovenskej republiky|[Ss][Rr]) vrátane všetkých príslušných domén nižšej úrovne.*!\1!p'
 }
 
 function update_source() {
@@ -60,8 +77,32 @@ function update_source() {
         return 1
     fi
 
-    local src; src="$( download_source "${SOURCE}" )"
-    extract_list "${src}" > "${blacklist}"
+    local domain_list=()
+    local court_order source_file extracted
+    while read court_order; do
+        echo -n "$( basename "${court_order}" ) "
+    
+        source_file="$( download_source "https://www.financnasprava.sk/${court_order}" )"
+        
+        set +o errexit
+        extracted="$( extract_website "${source_file}" )"; ret=$?
+        set -o errexit
+        if [ ${ret} -eq 64 ]; then
+            echo -e "[${CBLUE}SKIP${CRESET}]"
+            continue
+        elif [ ${ret} -gt 0 ]; then
+            exit ${ret}
+        fi
+        
+        if [ -n "${extracted}" ]; then
+            domain_list+=("${extracted}")
+            echo -e "[${CGREEN}OK${CRESET}]"
+        else
+            echo -e "[${CRED}FAIL${CRESET}]"
+        fi
+    done <<<$( get_source_list "${SOURCE}" )
+
+    printf "%s\n" "${domain_list[@]}" > "${blacklist}"
 
     echo "$( cat "${blacklist}" | wc -l ) site(s) extracted!"
 }
