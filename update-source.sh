@@ -1,8 +1,9 @@
-#!/bin/bash
+#!/bin/bash 
 
 set -o errexit
 set -o nounset
 set -o pipefail
+shopt -s compat42
 
 readonly CBLUE='\033[0;34m'
 readonly CGREEN='\033[0;32m'
@@ -100,7 +101,7 @@ function update_source() {
         else
             echo -e "[${CRED}FAIL${CRESET}]"
         fi
-    done <<<$( get_source_list "${SOURCE}" )
+    done <<<"$( get_source_list "${SOURCE}" )"
 
     printf "%s\n" "${domain_list[@]}" > "${blacklist}"
 
