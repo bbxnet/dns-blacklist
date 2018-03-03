@@ -20,11 +20,6 @@ EOHELP
 
 function generate_zone() {
     local site="$1"; shift
-
-    if [ ${BLACKLIST_STRIP_WWW:-0} -eq 1 ]; then
-        site="${site#www.}"
-    fi
-
     echo "zone \"${site}\" { type master; file \"${ZONEFILE}\"; };"
 }
 

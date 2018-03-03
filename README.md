@@ -13,10 +13,6 @@ This script recognizes the following variables that can be set in `config.mk` fi
 
 File containing new-line separated list of domains to be blocked.
 
-**`BLACKLIST_STRIP_WWW `**
-
-Remove leading www. from blacklist URLs, if set to 1.
-
 **`DEPLOYDIR`**
 
 Directory containing BIND configuration files.
@@ -55,7 +51,6 @@ Example configuration
 
 ```
 BLACKLIST = blacklist.txt
-BLACKLIST_STRIP_WWW = 0
 NAMEDBLACKLIST = named.conf.blacklist
 ZONEFILE = db.blacklist
 PRIMARYDNS = dnsa.example.com
